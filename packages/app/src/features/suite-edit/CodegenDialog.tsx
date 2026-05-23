@@ -49,7 +49,20 @@ export const CodegenDialog = ({ open, onClose, onResult }: Props): JSX.Element =
       const result = await startCodegen({ url: values.url, target });
       onResult({ script: result.script });
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const raw = err instanceof Error ? err.message : String(err);
+      // Rust 側 CommandError::PlaywrightBrowsersMissing は to_string() で
+      // 「Playwright のブラウザがインストールされていません...」を返すのでそのまま表示する。
+      // それ以外のサブプロセスエラーで stderr に既知のシグネチャがあれば同様の案内に置換する。
+      const browsersMissing =
+        raw.includes('Playwright のブラウザがインストールされていません') ||
+        raw.includes("Executable doesn't exist") ||
+        raw.includes('Looks like Playwright was just installed') ||
+        raw.includes('pnpm exec playwright install');
+      setError(
+        browsersMissing
+          ? 'Playwright のブラウザがインストールされていません。リポジトリルートで `pnpm exec playwright install` を実行してから再度お試しください。'
+          : raw,
+      );
     } finally {
       setSubmitting(false);
     }
@@ -110,7 +123,11 @@ export const CodegenDialog = ({ open, onClose, onResult }: Props): JSX.Element =
               <option value="javascript">javascript</option>
             </select>
           </div>
-          {error !== null && <div className={styles['error']}>{error}</div>}
+          {error !== null && (
+            <div className={styles['error-banner']} role="alert">
+              {error}
+            </div>
+          )}
           <p className={styles['hint']}>
             Playwright Codegen を起動します。ブラウザを閉じると操作が録画されたスクリプトが Step
             編集モーダルに展開されます。

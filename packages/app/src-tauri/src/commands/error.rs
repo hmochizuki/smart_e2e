@@ -20,6 +20,9 @@ pub enum CommandError {
 
     #[error("invalid input: {0}")]
     InvalidInput(String),
+
+    #[error("Playwright のブラウザがインストールされていません。リポジトリルートで `pnpm exec playwright install` を実行してから再度お試しください。")]
+    PlaywrightBrowsersMissing,
 }
 
 impl Serialize for CommandError {

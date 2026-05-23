@@ -46,6 +46,15 @@ pub fn resolve_target(target: Option<String>) -> String {
     }
 }
 
+// Playwright が browsers をダウンロード未済の典型 stderr に含まれる文字列を検知する。
+pub fn looks_like_browsers_missing(stderr: &str) -> bool {
+    let s = stderr;
+    s.contains("Executable doesn't exist")
+        || s.contains("Looks like Playwright was just installed")
+        || s.contains("pnpm exec playwright install")
+        || s.contains("npx playwright install")
+}
+
 fn create_temp_output_path() -> Result<TempPath, CommandError> {
     let temp = Builder::new()
         .prefix("smart-e2e-codegen-")
@@ -92,6 +101,9 @@ async fn run_codegen(
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        if looks_like_browsers_missing(&stderr) {
+            return Err(CommandError::PlaywrightBrowsersMissing);
+        }
         return Err(CommandError::SubprocessFailed {
             status: output.status.code().unwrap_or(-1),
             stderr,
@@ -182,6 +194,30 @@ mod tests {
         let path = create_temp_output_path().unwrap();
         let s = path.to_string_lossy();
         assert!(s.ends_with(".ts"));
+    }
+
+    #[test]
+    fn looks_like_browsers_missing_detects_executable_not_found() {
+        let stderr = "command.parse: Executable doesn't exist at /Users/x/.../Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
+        assert!(looks_like_browsers_missing(stderr));
+    }
+
+    #[test]
+    fn looks_like_browsers_missing_detects_install_banner() {
+        let stderr = "Looks like Playwright was just installed or updated.\nPlease run the following command";
+        assert!(looks_like_browsers_missing(stderr));
+    }
+
+    #[test]
+    fn looks_like_browsers_missing_detects_install_hint() {
+        let stderr = "Please run: pnpm exec playwright install";
+        assert!(looks_like_browsers_missing(stderr));
+    }
+
+    #[test]
+    fn looks_like_browsers_missing_ignores_unrelated_stderr() {
+        let stderr = "TimeoutError: page.goto timed out";
+        assert!(!looks_like_browsers_missing(stderr));
     }
 
     #[test]

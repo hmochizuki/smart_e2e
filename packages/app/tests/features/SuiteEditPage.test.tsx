@@ -237,5 +237,70 @@ describe('SuiteEditPage', () => {
 
       expect(await screen.findByText(/codegen failed: npx not found/)).toBeTruthy();
     });
+
+    it('Playwright ブラウザ未インストール時に親切な案内が出る', async () => {
+      invokeMock.mockImplementation((cmd: string) => {
+        switch (cmd) {
+          case 'get_suite':
+            return baseSuite;
+          case 'list_steps':
+            return [baseStep];
+          case 'list_suite_runs':
+            return [];
+          case 'start_codegen':
+            // Rust 側の PlaywrightBrowsersMissing が to_string されたメッセージを再現
+            throw new Error(
+              'Playwright のブラウザがインストールされていません。リポジトリルートで `pnpm exec playwright install` を実行してから再度お試しください。',
+            );
+          default:
+            return null;
+        }
+      });
+
+      renderPage();
+
+      await screen.findByText('トップを開く');
+      fireEvent.click(screen.getByRole('button', { name: '録画から Step を作成' }));
+      fireEvent.change(await screen.findByLabelText('録画開始 URL'), {
+        target: { value: 'https://recorded.example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: '録画を開始' }));
+
+      const msg = await screen.findByText(/Playwright のブラウザがインストールされていません/);
+      expect(msg).toBeTruthy();
+      expect(msg.textContent).toContain('pnpm exec playwright install');
+    });
+
+    it('Subprocess の生stderr から browsers missing を検出してメッセージを置換する', async () => {
+      invokeMock.mockImplementation((cmd: string) => {
+        switch (cmd) {
+          case 'get_suite':
+            return baseSuite;
+          case 'list_steps':
+            return [baseStep];
+          case 'list_suite_runs':
+            return [];
+          case 'start_codegen':
+            throw new Error(
+              "subprocess returned non-zero (status 1): Executable doesn't exist at /Users/x/.../Google Chrome for Testing",
+            );
+          default:
+            return null;
+        }
+      });
+
+      renderPage();
+
+      await screen.findByText('トップを開く');
+      fireEvent.click(screen.getByRole('button', { name: '録画から Step を作成' }));
+      fireEvent.change(await screen.findByLabelText('録画開始 URL'), {
+        target: { value: 'https://recorded.example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: '録画を開始' }));
+
+      expect(
+        await screen.findByText(/Playwright のブラウザがインストールされていません/),
+      ).toBeTruthy();
+    });
   });
 });

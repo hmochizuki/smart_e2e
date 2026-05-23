@@ -18,12 +18,22 @@
 
 ## セットアップ
 
-前提: Node 20+, pnpm 9+。
+前提: Node 20+, pnpm 9+, Rust toolchain (`rustup`)。
 
 ```sh
 pnpm install
 pnpm exec lefthook install   # 通常は pnpm install で自動実行されるが念のため
 ```
+
+### Playwright ブラウザ (録画機能を使う場合は必須)
+
+Suite 編集画面の「録画から Step を作成」 (Playwright codegen) を使うには、Playwright のブラウザバイナリを別途インストールする必要がある:
+
+```sh
+pnpm exec playwright install
+```
+
+このセットアップを忘れたまま録画を起動すると、ダイアログに「Playwright のブラウザがインストールされていません」と表示される。
 
 ## 開発ワークフロー
 
