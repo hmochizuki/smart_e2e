@@ -6,6 +6,7 @@ import type {
   CreateStepRunInput as RunnerCreateStepRunInput,
   UpdateStepRunPatch as RunnerUpdateStepRunPatch,
   CreateRepairAttemptInput as RunnerCreateRepairAttemptInput,
+  UpdateRepairAttemptPatch as RunnerUpdateRepairAttemptPatch,
   SaveScriptHistoryInput as RunnerSaveScriptHistoryInput,
   SuiteRunId as RunnerSuiteRunId,
   StepRunId as RunnerStepRunId,
@@ -18,6 +19,7 @@ import type {
   CreateStepRunInput as LocalCreateStepRunInput,
   UpdateStepRunPatch as LocalUpdateStepRunPatch,
   CreateRepairAttemptInput as LocalCreateRepairAttemptInput,
+  UpdateRepairAttemptPatch as LocalUpdateRepairAttemptPatch,
   SaveScriptHistoryInput as LocalSaveScriptHistoryInput,
   SuiteRunId as LocalSuiteRunId,
   StepRunId as LocalStepRunId,
@@ -38,6 +40,7 @@ describe('runner <-> persistence: RunnerPersistence 型互換', () => {
     expectTypeOf<LocalCreateStepRunInput>().toEqualTypeOf<RunnerCreateStepRunInput>();
     expectTypeOf<LocalUpdateStepRunPatch>().toEqualTypeOf<RunnerUpdateStepRunPatch>();
     expectTypeOf<LocalCreateRepairAttemptInput>().toEqualTypeOf<RunnerCreateRepairAttemptInput>();
+    expectTypeOf<LocalUpdateRepairAttemptPatch>().toEqualTypeOf<RunnerUpdateRepairAttemptPatch>();
     expectTypeOf<LocalSaveScriptHistoryInput>().toEqualTypeOf<RunnerSaveScriptHistoryInput>();
   });
 

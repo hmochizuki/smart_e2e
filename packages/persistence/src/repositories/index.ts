@@ -11,6 +11,7 @@ export {
   type CreateStepRunInput,
   type UpdateStepRunPatch,
   type CreateRepairAttemptInput,
+  type UpdateRepairAttemptPatch,
   type SaveScriptHistoryInput,
   type SuiteRunId,
   type StepRunId,

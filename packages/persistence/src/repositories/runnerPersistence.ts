@@ -65,12 +65,18 @@ export type SaveScriptHistoryInput = {
   createdAt: Date;
 };
 
+export type UpdateRepairAttemptPatch = {
+  llmOutputScript?: string | null;
+  result?: RepairResult;
+};
+
 export type RunnerPersistence = {
   createSuiteRun: (input: CreateSuiteRunInput) => Promise<SuiteRunId>;
   updateSuiteRun: (id: SuiteRunId, patch: UpdateSuiteRunPatch) => Promise<void>;
   createStepRun: (input: CreateStepRunInput) => Promise<StepRunId>;
   updateStepRun: (id: StepRunId, patch: UpdateStepRunPatch) => Promise<void>;
   createRepairAttempt: (input: CreateRepairAttemptInput) => Promise<RepairAttemptId>;
+  updateRepairAttempt: (id: RepairAttemptId, patch: UpdateRepairAttemptPatch) => Promise<void>;
   saveScriptHistory: (input: SaveScriptHistoryInput) => Promise<void>;
 };
 
@@ -126,6 +132,10 @@ export class DrizzleRunnerPersistence implements RunnerPersistence {
       createdAt: input.createdAt,
     });
     return input.repairAttemptId;
+  }
+
+  async updateRepairAttempt(id: RepairAttemptId, patch: UpdateRepairAttemptPatch): Promise<void> {
+    await this.repairRepo.updateRepairAttempt(id, patch);
   }
 
   async saveScriptHistory(input: SaveScriptHistoryInput): Promise<void> {

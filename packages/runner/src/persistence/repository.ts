@@ -67,6 +67,11 @@ export type SaveScriptHistoryInput = {
   createdAt: Date;
 };
 
+export type UpdateRepairAttemptPatch = {
+  llmOutputScript?: string | null;
+  result?: RepairResult;
+};
+
 // runner 自体は永続化を行わない。
 // 呼び出し側 (Tauri command や CLI ホスト) がこの interface を実装し、
 // emitter のイベントを購読しながら DB / ファイルに書き出す。
@@ -76,5 +81,6 @@ export type RunnerPersistence = {
   createStepRun: (input: CreateStepRunInput) => Promise<StepRunId>;
   updateStepRun: (id: StepRunId, patch: UpdateStepRunPatch) => Promise<void>;
   createRepairAttempt: (input: CreateRepairAttemptInput) => Promise<RepairAttemptId>;
+  updateRepairAttempt: (id: RepairAttemptId, patch: UpdateRepairAttemptPatch) => Promise<void>;
   saveScriptHistory: (input: SaveScriptHistoryInput) => Promise<void>;
 };

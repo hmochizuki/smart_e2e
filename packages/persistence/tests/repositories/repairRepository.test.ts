@@ -5,7 +5,7 @@ import { SuiteRepository } from '../../src/repositories/suiteRepository.js';
 import { StepRepository } from '../../src/repositories/stepRepository.js';
 import { RunRepository } from '../../src/repositories/runRepository.js';
 import { RepairRepository } from '../../src/repositories/repairRepository.js';
-import { ConflictError } from '../../src/errors.js';
+import { ConflictError, NotFoundError } from '../../src/errors.js';
 
 const SCRIPT = "await page.click('#login');";
 
@@ -185,6 +185,97 @@ describe('RepairRepository', () => {
       });
       const found = await repairRepo.findRepairAttemptById(id);
       expect(found?.id).toBe(id);
+    });
+  });
+
+  describe('updateRepairAttempt', () => {
+    it('llmOutputScript を null から文字列に上書きできる', async () => {
+      const id = randomUUID();
+      await repairRepo.createRepairAttempt(id, {
+        stepRunId,
+        n: 1,
+        classification: 'ui_change',
+        errorLog: 'sel not found',
+        screenshotPath: null,
+        domSnapshot: null,
+        llmInputScript: SCRIPT,
+        llmOutputScript: null,
+        result: 'failure',
+        createdAt: new Date(),
+      });
+      const updated = await repairRepo.updateRepairAttempt(id, {
+        llmOutputScript: 'await page.click("#new");',
+      });
+      expect(updated.llmOutputScript).toBe('await page.click("#new");');
+      const refetched = await repairRepo.findRepairAttemptByIdOrThrow(id);
+      expect(refetched.llmOutputScript).toBe('await page.click("#new");');
+    });
+
+    it('result を failure から success に変更できる', async () => {
+      const id = randomUUID();
+      await repairRepo.createRepairAttempt(id, {
+        stepRunId,
+        n: 1,
+        classification: 'transient',
+        errorLog: 'flaky',
+        screenshotPath: null,
+        domSnapshot: null,
+        llmInputScript: SCRIPT,
+        llmOutputScript: null,
+        result: 'failure',
+        createdAt: new Date(),
+      });
+      const updated = await repairRepo.updateRepairAttempt(id, {
+        result: 'success',
+      });
+      expect(updated.result).toBe('success');
+    });
+
+    it('llmOutputScript を明示的に null に戻せる', async () => {
+      const id = randomUUID();
+      await repairRepo.createRepairAttempt(id, {
+        stepRunId,
+        n: 1,
+        classification: 'ui_change',
+        errorLog: 'x',
+        screenshotPath: null,
+        domSnapshot: null,
+        llmInputScript: SCRIPT,
+        llmOutputScript: 'first',
+        result: 'failure',
+        createdAt: new Date(),
+      });
+      const updated = await repairRepo.updateRepairAttempt(id, {
+        llmOutputScript: null,
+      });
+      expect(updated.llmOutputScript).toBeNull();
+    });
+
+    it('存在しない id は NotFoundError', async () => {
+      await expect(
+        repairRepo.updateRepairAttempt('00000000-0000-0000-0000-000000000000', {
+          llmOutputScript: 'x',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundError);
+    });
+
+    it('空 patch は既存値を変更しない', async () => {
+      const id = randomUUID();
+      await repairRepo.createRepairAttempt(id, {
+        stepRunId,
+        n: 1,
+        classification: 'ui_change',
+        errorLog: 'x',
+        screenshotPath: null,
+        domSnapshot: null,
+        llmInputScript: SCRIPT,
+        llmOutputScript: 'kept',
+        result: 'failure',
+        createdAt: new Date(),
+      });
+      const updated = await repairRepo.updateRepairAttempt(id, {});
+      expect(updated.llmOutputScript).toBe('kept');
+      expect(updated.result).toBe('failure');
     });
   });
 });

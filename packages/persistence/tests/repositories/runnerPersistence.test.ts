@@ -190,6 +190,47 @@ describe('DrizzleRunnerPersistence', () => {
     expect(found?.classification).toBe('ui_change');
   });
 
+  it('updateRepairAttempt: llmOutputScript と result を更新できる', async () => {
+    const suiteRunId = randomUUID();
+    await rp.createSuiteRun({
+      suiteRunId,
+      suiteId,
+      status: 'running',
+      startedAt: new Date(),
+    });
+    const stepRunId = randomUUID();
+    await rp.createStepRun({
+      stepRunId,
+      suiteRunId,
+      stepId,
+      status: 'running',
+      attempts: 1,
+      startedAt: new Date(),
+      finalScript: SCRIPT,
+    });
+    const id = randomUUID();
+    await rp.createRepairAttempt({
+      repairAttemptId: id,
+      stepRunId,
+      n: 1,
+      classification: 'ui_change',
+      errorLog: 'fail',
+      screenshotPath: null,
+      domSnapshot: null,
+      llmInputScript: SCRIPT,
+      llmOutputScript: null,
+      result: 'failure',
+      createdAt: new Date(),
+    });
+    await rp.updateRepairAttempt(id, {
+      llmOutputScript: 'await page.click("#new");',
+      result: 'success',
+    });
+    const found = await repairRepo.findRepairAttemptById(id);
+    expect(found?.llmOutputScript).toBe('await page.click("#new");');
+    expect(found?.result).toBe('success');
+  });
+
   it('saveScriptHistory: codegen と auto_repair の両方を保存', async () => {
     await rp.saveScriptHistory({
       stepId,

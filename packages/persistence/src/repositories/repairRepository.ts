@@ -5,11 +5,25 @@ import {
   RepairResultSchema,
   type NewRepairAttemptInput,
   type RepairAttempt,
+  type RepairResult,
 } from '@smart-e2e/shared';
 import type { AppDatabase } from '../db.js';
 import { repairAttempts, type RepairAttemptRow } from '../schema/repairAttempt.js';
 import { NotFoundError, runWithConflictMapping } from '../errors.js';
 import { epochMsToDate } from '../mappers/dateMapper.js';
+
+type TxDb = Parameters<Parameters<AppDatabase['transaction']>[0]>[0];
+type AnyDb = AppDatabase | TxDb;
+
+const selectRepairAttemptById = (db: AnyDb, id: string): RepairAttemptRow | null => {
+  const rows = db.select().from(repairAttempts).where(eq(repairAttempts.id, id)).all();
+  return rows[0] ?? null;
+};
+
+export interface RepairRepositoryUpdateRepairAttemptPatch {
+  readonly llmOutputScript?: string | null;
+  readonly result?: RepairResult;
+}
 
 const rowToRepairAttempt = (row: RepairAttemptRow): RepairAttempt => ({
   id: row.id,
@@ -73,5 +87,40 @@ export class RepairRepository {
       .orderBy(asc(repairAttempts.n))
       .all();
     return Promise.resolve(rows.map(rowToRepairAttempt));
+  }
+
+  async updateRepairAttempt(
+    id: string,
+    patch: RepairRepositoryUpdateRepairAttemptPatch,
+  ): Promise<RepairAttempt> {
+    await Promise.resolve();
+    const updated = this.db.transaction((tx) => {
+      const existing = selectRepairAttemptById(tx, id);
+      if (!existing) {
+        throw new NotFoundError('RepairAttempt', id);
+      }
+      const setValues: {
+        llmOutputScript?: string | null;
+        result?: RepairResult;
+      } = {};
+      if ('llmOutputScript' in patch) {
+        setValues.llmOutputScript = patch.llmOutputScript ?? null;
+      }
+      if (patch.result !== undefined) {
+        setValues.result = patch.result;
+      }
+      if (Object.keys(setValues).length === 0) {
+        return rowToRepairAttempt(existing);
+      }
+      runWithConflictMapping('RepairAttempt', () => {
+        tx.update(repairAttempts).set(setValues).where(eq(repairAttempts.id, id)).run();
+      });
+      const fresh = selectRepairAttemptById(tx, id);
+      if (!fresh) {
+        throw new NotFoundError('RepairAttempt', id);
+      }
+      return rowToRepairAttempt(fresh);
+    });
+    return updated;
   }
 }
