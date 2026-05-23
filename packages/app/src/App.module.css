@@ -1,0 +1,37 @@
+.shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+}
+
+.brand:hover {
+  text-decoration: none;
+  color: var(--color-accent);
+}
+
+.main {
+  flex: 1 1 auto;
+  padding: 24px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}

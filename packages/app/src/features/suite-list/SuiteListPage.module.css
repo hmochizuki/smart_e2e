@@ -1,0 +1,54 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.state {
+  padding: 24px;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.name-link {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.name-link:hover {
+  color: var(--color-accent);
+}
+
+.desc {
+  color: var(--color-text-muted);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date {
+  white-space: nowrap;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}

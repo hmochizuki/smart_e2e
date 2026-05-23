@@ -1,0 +1,38 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-input);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+.error {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}

@@ -1,0 +1,247 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.state {
+  padding: 32px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 18px;
+}
+
+.runs {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--color-bg);
+  height: max-content;
+}
+
+.runs-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 8px 8px;
+}
+
+.runs-empty {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.runs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.run-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.run-button:hover {
+  background: var(--color-surface);
+}
+
+.run-button-active {
+  background: var(--color-surface-hover);
+}
+
+.run-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-weight: 600;
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mock-banner {
+  padding: 8px 14px;
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid var(--color-warning);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--color-warning);
+}
+
+.detail-section {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.detail-title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 16px;
+}
+
+.progress-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.status {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.status.pending {
+  background: var(--color-text-muted);
+}
+
+.status.running {
+  background: var(--color-accent);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.status.succeeded {
+  background: var(--color-success);
+}
+
+.status.failed {
+  background: var(--color-danger);
+}
+
+.status.skipped {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+.progress-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.progress-name {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.progress-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.screenshot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.log {
+  margin: 0;
+  padding: 12px;
+  background: #0d1117;
+  color: #e6edf3;
+  border-radius: 8px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

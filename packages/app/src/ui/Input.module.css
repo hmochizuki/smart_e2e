@@ -1,0 +1,27 @@
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-input);
+  color: var(--color-text);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-ring);
+}
+
+.invalid {
+  border-color: var(--color-danger);
+}
+
+.invalid:focus {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.18);
+}
