@@ -1,5 +1,5 @@
-import { devMockHandlers, isDevMockCommand } from './devMock.js';
-import type { CodegenInputWire } from './types.js';
+import { devMockHandlers, devSubscribeRunnerEvent, isDevMockCommand } from './devMock.js';
+import type { CodegenInputWire, RunnerEventWire } from './types.js';
 
 interface TauriShim {
   invoke: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
@@ -49,6 +49,10 @@ const dispatch = (cmd: string, args?: Record<string, unknown>): unknown => {
       const input: CodegenInputWire = target === undefined ? { url } : { url, target };
       return devMockHandlers.start_codegen(input);
     }
+    case 'start_run':
+      return devMockHandlers.start_run(requireString(args, 'suiteId'));
+    case 'cancel_run':
+      return devMockHandlers.cancel_run(requireString(args, 'runId'));
     default: {
       const exhaustive: never = cmd;
       throw new Error(`devMock: unhandled command ${String(exhaustive)}`);
@@ -164,6 +168,11 @@ declare global {
   }
 }
 
+interface EventCallback {
+  readonly callback: (response: unknown) => void;
+  readonly once: boolean;
+}
+
 export const installDevMockIfNeeded = (): void => {
   if (typeof window === 'undefined') {
     return;
@@ -171,18 +180,82 @@ export const installDevMockIfNeeded = (): void => {
   if (window.__TAURI_INTERNALS__) {
     return;
   }
+
+  // 各 transformCallback で登録された callback を id で管理する。
+  let nextCallbackId = 1;
+  const callbacks = new Map<number, EventCallback>();
+
+  // event listener id -> { eventName, callbackId } を覚えておく。
+  let nextEventId = 1;
+  const eventListeners = new Map<number, { eventName: string; callbackId: number }>();
+  const devEventUnsubscribers = new Map<string, () => void>();
+
+  const handleEventListen = (args?: Record<string, unknown>): number => {
+    const eventName = typeof args?.['event'] === 'string' ? args['event'] : '';
+    const handlerId = typeof args?.['handler'] === 'number' ? args['handler'] : 0;
+    const eventId = nextEventId;
+    nextEventId += 1;
+    eventListeners.set(eventId, { eventName, callbackId: handlerId });
+    if (eventName === 'runner:event') {
+      const off = devSubscribeRunnerEvent((ev: RunnerEventWire) => {
+        const cb = callbacks.get(handlerId);
+        if (!cb) return;
+        // tauri event payload shape: { event, id, payload }
+        cb.callback({ event: eventName, id: eventId, payload: ev });
+      });
+      devEventUnsubscribers.set(`${String(eventId)}`, off);
+    }
+    return eventId;
+  };
+
+  const handleEventUnlisten = (args?: Record<string, unknown>): null => {
+    const eventId = typeof args?.['eventId'] === 'number' ? args['eventId'] : 0;
+    const key = String(eventId);
+    const off = devEventUnsubscribers.get(key);
+    if (off) {
+      off();
+      devEventUnsubscribers.delete(key);
+    }
+    eventListeners.delete(eventId);
+    return null;
+  };
+
   const shim: TauriShim = {
     invoke: (cmd, args) => {
       try {
+        if (cmd === 'plugin:event|listen') {
+          return Promise.resolve(handleEventListen(args));
+        }
+        if (cmd === 'plugin:event|unlisten') {
+          return Promise.resolve(handleEventUnlisten(args));
+        }
         const result = dispatch(cmd, args);
         return Promise.resolve(result);
       } catch (err) {
         return Promise.reject(err instanceof Error ? err : new Error(String(err)));
       }
     },
-    transformCallback: () => 0,
-    unregisterCallback: () => {},
+    transformCallback: (callback, once) => {
+      const id = nextCallbackId;
+      nextCallbackId += 1;
+      callbacks.set(id, { callback, once });
+      return id;
+    },
+    unregisterCallback: (id) => {
+      callbacks.delete(id);
+    },
     convertFileSrc: (filePath) => filePath,
   };
   window.__TAURI_INTERNALS__ = shim;
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__ = {
+    unregisterListener: (_event, eventId) => {
+      const key = String(eventId);
+      const off = devEventUnsubscribers.get(key);
+      if (off) {
+        off();
+        devEventUnsubscribers.delete(key);
+      }
+      eventListeners.delete(eventId);
+    },
+  };
 };

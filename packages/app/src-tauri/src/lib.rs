@@ -6,6 +6,7 @@ pub mod commands;
 #[derive(Clone)]
 pub struct RunnerContext {
     pub script_path: PathBuf,
+    pub run_script_path: PathBuf,
     pub db_path: PathBuf,
     pub migrations_folder: PathBuf,
 }
@@ -29,13 +30,16 @@ pub fn run() {
 
             // dev / build どちらでもスクリプトと migrations を解決できるようにする。
             let script_path = resolve_script_path(&resource_dir);
+            let run_script_path = resolve_run_script_path(&resource_dir);
             let migrations_folder = resolve_migrations_folder(&resource_dir);
 
             app.manage(RunnerContext {
                 script_path,
+                run_script_path,
                 db_path,
                 migrations_folder,
             });
+            app.manage(commands::run::RunState::new());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -49,6 +53,8 @@ pub fn run() {
             commands::suite::update_step,
             commands::suite::delete_step,
             commands::run::list_suite_runs,
+            commands::run::start_run,
+            commands::run::cancel_run,
             commands::codegen::start_codegen,
         ])
         .run(tauri::generate_context!())
@@ -65,6 +71,18 @@ fn resolve_script_path(resource_dir: &std::path::Path) -> PathBuf {
     manifest_dir
         .parent()
         .map(|p| p.join("scripts").join("cmd.mjs"))
+        .unwrap_or_else(|| bundled)
+}
+
+fn resolve_run_script_path(resource_dir: &std::path::Path) -> PathBuf {
+    let bundled = resource_dir.join("scripts").join("run.mjs");
+    if bundled.exists() {
+        return bundled;
+    }
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    manifest_dir
+        .parent()
+        .map(|p| p.join("scripts").join("run.mjs"))
         .unwrap_or_else(|| bundled)
 }
 

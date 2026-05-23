@@ -1,4 +1,10 @@
-import type { NewSuiteInput, NewStepInput, RunStatus, StepRunStatus } from '@smart-e2e/shared';
+import type {
+  NewSuiteInput,
+  NewStepInput,
+  RunStatus,
+  StepRunStatus,
+  RunnerEvent,
+} from '@smart-e2e/shared';
 
 export interface SuiteWire {
   readonly id: string;
@@ -53,4 +59,20 @@ export interface CodegenInputWire {
 export interface CodegenResultWire {
   readonly script: string;
   readonly targetUrl: string;
+}
+
+// runner subprocess から JSON Lines で流れてくるイベント。
+// Date 系は ISO 文字列にシリアライズされている (runner CLI と同様)。
+export type RunnerEventWire = ReplaceDates<RunnerEvent>;
+
+type ReplaceDates<T> = T extends Date
+  ? string
+  : T extends ReadonlyArray<infer U>
+    ? ReadonlyArray<ReplaceDates<U>>
+    : T extends object
+      ? { readonly [K in keyof T]: ReplaceDates<T[K]> }
+      : T;
+
+export interface StartRunResponseWire {
+  readonly runId: string;
 }

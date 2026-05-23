@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
 import { formatDateTime } from '../../lib/format.js';
 import { Button, ConfirmDialog, Spinner, Table, useToast } from '../../ui/index.js';
 import type { NewSuiteInputWire, SuiteWire } from '../../ipc/types.js';
+import { startRun } from '../../ipc/commands.js';
 import { CreateSuiteDialog } from './CreateSuiteDialog.js';
 import { useCreateSuite, useDeleteSuite, useSuites } from './useSuites.js';
 import styles from './SuiteListPage.module.css';
@@ -12,9 +14,27 @@ export const SuiteListPage = (): JSX.Element => {
   const createMut = useCreateSuite();
   const deleteMut = useDeleteSuite();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [createOpen, setCreateOpen] = useState<boolean>(false);
   const [pendingDelete, setPendingDelete] = useState<SuiteWire | null>(null);
+  const [pendingRunSuiteId, setPendingRunSuiteId] = useState<string | null>(null);
+
+  const startRunMut = useMutation({
+    mutationFn: (suiteId: string) => startRun(suiteId),
+    onMutate: (suiteId: string) => {
+      setPendingRunSuiteId(suiteId);
+    },
+    onSuccess: (res, suiteId) => {
+      void navigate(`/suites/${suiteId}/runs/${res.runId}`);
+    },
+    onError: (err: unknown) => {
+      toast.show(err instanceof Error ? err.message : '実行開始に失敗しました', 'error');
+    },
+    onSettled: () => {
+      setPendingRunSuiteId(null);
+    },
+  });
 
   const handleCreate = async (input: NewSuiteInputWire): Promise<void> => {
     try {
@@ -84,9 +104,13 @@ export const SuiteListPage = (): JSX.Element => {
                   <Link to={`/suites/${suite.id}`}>
                     <Button>編集</Button>
                   </Link>
-                  <Link to={`/suites/${suite.id}/runs/latest`}>
-                    <Button>実行</Button>
-                  </Link>
+                  <Button
+                    variant="primary"
+                    onClick={() => startRunMut.mutate(suite.id)}
+                    disabled={pendingRunSuiteId === suite.id}
+                  >
+                    {pendingRunSuiteId === suite.id ? '起動中...' : '実行'}
+                  </Button>
                   <Button variant="danger" onClick={() => setPendingDelete(suite)}>
                     削除
                   </Button>

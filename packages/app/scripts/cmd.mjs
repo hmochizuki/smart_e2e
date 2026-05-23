@@ -79,6 +79,14 @@ async function dispatch(name, payload, repos) {
       return null;
     case 'list_suite_runs':
       return await runRepo.listSuiteRunsBySuiteId(payload.suiteId);
+    case 'update_suite_run': {
+      const patch = stripNulls(payload.patch ?? {});
+      if (patch.finishedAt && typeof patch.finishedAt === 'string') {
+        patch.finishedAt = new Date(patch.finishedAt);
+      }
+      await runRepo.updateSuiteRun(payload.id, patch);
+      return null;
+    }
     default:
       throw new Error(`unknown command: ${name}`);
   }

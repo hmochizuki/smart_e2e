@@ -3,6 +3,8 @@ import type {
   CodegenResultWire,
   NewStepInputWire,
   NewSuiteInputWire,
+  RunnerEventWire,
+  StartRunResponseWire,
   StepPatchWire,
   StepWire,
   SuitePatchWire,
@@ -150,6 +152,92 @@ const persist = (): void => {
   }
 };
 
+// dev mock の event emit シム。installDevMock 側が listen 関数を提供し、
+// scheduleDevRun が時系列で event を流す。
+type DevEventListener = (event: RunnerEventWire) => void;
+const eventListeners: Set<DevEventListener> = new Set();
+
+export const devSubscribeRunnerEvent = (listener: DevEventListener): (() => void) => {
+  eventListeners.add(listener);
+  return () => {
+    eventListeners.delete(listener);
+  };
+};
+
+const devEmit = (event: RunnerEventWire): void => {
+  for (const l of eventListeners) {
+    try {
+      l(event);
+    } catch {
+      // ignore
+    }
+  }
+};
+
+const scheduleDevRun = (
+  suiteRunId: string,
+  suite: SuiteWire,
+  steps: ReadonlyArray<StepWire>,
+): void => {
+  const startedAt = new Date().toISOString();
+  const ordered = [...steps].sort((a, b) => a.order - b.order);
+  let delay = 200;
+
+  setTimeout(() => {
+    devEmit({ type: 'suite_started', suiteRunId, suiteId: suite.id, startedAt });
+  }, delay);
+
+  const stepRunIds = ordered.map(() => uid());
+
+  ordered.forEach((step, idx) => {
+    const stepRunId = stepRunIds[idx];
+    if (typeof stepRunId !== 'string') return;
+    delay += 300;
+    setTimeout(() => {
+      devEmit({
+        type: 'step_started',
+        stepRunId,
+        stepId: step.id,
+        order: step.order,
+        name: step.name,
+      });
+    }, delay);
+    delay += 400;
+    setTimeout(() => {
+      devEmit({ type: 'step_attempt', stepRunId, attempt: 1, script: step.script });
+    }, delay);
+    delay += 500;
+    setTimeout(() => {
+      devEmit({
+        type: 'step_finished',
+        stepRunId,
+        status: 'succeeded',
+        attempts: 1,
+        finalScript: step.script,
+      });
+    }, delay);
+  });
+
+  delay += 400;
+  setTimeout(() => {
+    devEmit({
+      type: 'suite_finished',
+      suiteRunId,
+      status: 'succeeded',
+      finishedAt: new Date().toISOString(),
+    });
+    const finished: SuiteRunWire = {
+      id: suiteRunId,
+      suiteId: suite.id,
+      status: 'succeeded',
+      startedAt,
+      finishedAt: new Date().toISOString(),
+    };
+    state = { ...state, runs: [...state.runs, finished] };
+    persist();
+  }, delay);
+};
+
 export const devMockHandlers = {
   list_suites: (): SuiteWire[] => [...state.suites],
   create_suite: (input: NewSuiteInputWire): SuiteWire => {
@@ -254,6 +342,17 @@ export const devMockHandlers = {
     const sample = `import { test, expect } from '@playwright/test';\n\ntest('codegen mock', async ({ page }) => {\n  await page.goto('${input.url}');\n  await expect(page).toHaveTitle(/.*/);\n});\n`;
     return { script: sample, targetUrl: input.url };
   },
+  start_run: (suiteId: string): StartRunResponseWire => {
+    const suite = state.suites.find((s) => s.id === suiteId);
+    if (!suite) {
+      throw new Error(`suite not found: ${suiteId}`);
+    }
+    const suiteSteps = state.steps.filter((s) => s.suiteId === suiteId);
+    const runId = uid();
+    scheduleDevRun(runId, suite, suiteSteps);
+    return { runId };
+  },
+  cancel_run: (_runId: string): null => null,
 };
 
 export type DevMockCommand = keyof typeof devMockHandlers;

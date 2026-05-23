@@ -7,6 +7,7 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import {
+  cancelRun,
   createStep,
   createSuite,
   deleteStep,
@@ -16,6 +17,7 @@ import {
   listSuiteRuns,
   listSuites,
   startCodegen,
+  startRun,
   updateStep,
   updateSuite,
 } from '../../src/ipc/commands.js';
@@ -153,5 +155,27 @@ describe('startCodegen', () => {
     const result: CodegenResultWire = await startCodegen({ url: 'https://example.com' });
     expect(result.script).toBe(wire.script);
     expect(result.targetUrl).toBe(wire.targetUrl);
+  });
+});
+
+describe('startRun', () => {
+  it('passes suiteId', async () => {
+    invokeMock.mockResolvedValueOnce({ runId: 'run-1' });
+    await startRun('suite-1');
+    expect(invokeMock).toHaveBeenCalledWith('start_run', { suiteId: 'suite-1' });
+  });
+
+  it('returns runId from response', async () => {
+    invokeMock.mockResolvedValueOnce({ runId: 'run-xyz' });
+    const result = await startRun('suite-1');
+    expect(result.runId).toBe('run-xyz');
+  });
+});
+
+describe('cancelRun', () => {
+  it('passes runId', async () => {
+    invokeMock.mockResolvedValueOnce(null);
+    await cancelRun('run-1');
+    expect(invokeMock).toHaveBeenCalledWith('cancel_run', { runId: 'run-1' });
   });
 });

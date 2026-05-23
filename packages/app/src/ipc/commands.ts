@@ -9,6 +9,7 @@ import type {
   StepPatchWire,
   CodegenInputWire,
   CodegenResultWire,
+  StartRunResponseWire,
 } from './types.js';
 
 export const listSuites = (): Promise<SuiteWire[]> => invoke('list_suites');
@@ -39,3 +40,8 @@ export const listSuiteRuns = (suiteId: string): Promise<SuiteRunWire[]> =>
 
 export const startCodegen = (input: CodegenInputWire): Promise<CodegenResultWire> =>
   invoke('start_codegen', { url: input.url, target: input.target });
+
+export const startRun = (suiteId: string): Promise<StartRunResponseWire> =>
+  invoke('start_run', { suiteId });
+
+export const cancelRun = (runId: string): Promise<void> => invoke('cancel_run', { runId });
