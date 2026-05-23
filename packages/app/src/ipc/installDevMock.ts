@@ -53,6 +53,10 @@ const dispatch = (cmd: string, args?: Record<string, unknown>): unknown => {
       return devMockHandlers.start_run(requireString(args, 'suiteId'));
     case 'cancel_run':
       return devMockHandlers.cancel_run(requireString(args, 'runId'));
+    case 'check_playwright':
+      return devMockHandlers.check_playwright();
+    case 'install_playwright':
+      return devMockHandlers.install_playwright();
     default: {
       const exhaustive: never = cmd;
       throw new Error(`devMock: unhandled command ${String(exhaustive)}`);

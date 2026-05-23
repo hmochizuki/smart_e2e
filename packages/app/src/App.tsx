@@ -1,4 +1,5 @@
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { PlaywrightBanner } from './features/playwright-setup/PlaywrightBanner.js';
 import { RunViewerPage } from './features/run-viewer/RunViewerPage.js';
 import { SuiteEditPage } from './features/suite-edit/SuiteEditPage.js';
 import { SuiteListPage } from './features/suite-list/SuiteListPage.js';
@@ -12,6 +13,7 @@ export const App = (): JSX.Element => (
       </Link>
     </header>
     <main className={styles['main']}>
+      <PlaywrightBanner />
       <Routes>
         <Route path="/" element={<SuiteListPage />} />
         <Route path="/suites/:id" element={<SuiteEditPage />} />

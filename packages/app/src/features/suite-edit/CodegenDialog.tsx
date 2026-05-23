@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { startCodegen } from '../../ipc/commands.js';
+import { installPlaywright, startCodegen } from '../../ipc/commands.js';
 import type { CodegenTarget } from '../../ipc/types.js';
 import { Button, Input, Modal, Spinner } from '../../ui/index.js';
 import styles from './CodegenDialog.module.css';
@@ -23,6 +24,19 @@ interface Props {
 export const CodegenDialog = ({ open, onClose, onResult }: Props): JSX.Element => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [browsersMissing, setBrowsersMissing] = useState<boolean>(false);
+  const qc = useQueryClient();
+  const install = useMutation<void, Error>({
+    mutationFn: () => installPlaywright(),
+    onSuccess: () => {
+      setBrowsersMissing(false);
+      setError(null);
+      void qc.invalidateQueries({ queryKey: ['playwright-status'] });
+    },
+    onError: (e) => {
+      setError(`インストールに失敗しました: ${e.message}`);
+    },
+  });
   const {
     register,
     handleSubmit,
@@ -38,6 +52,7 @@ export const CodegenDialog = ({ open, onClose, onResult }: Props): JSX.Element =
       reset({ url: 'https://', target: 'playwright-test' });
       setError(null);
       setSubmitting(false);
+      setBrowsersMissing(false);
     }
   }, [open, reset]);
 
@@ -51,16 +66,17 @@ export const CodegenDialog = ({ open, onClose, onResult }: Props): JSX.Element =
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err);
       // Rust 側 CommandError::PlaywrightBrowsersMissing は to_string() で
-      // 「Playwright のブラウザがインストールされていません...」を返すのでそのまま表示する。
-      // それ以外のサブプロセスエラーで stderr に既知のシグネチャがあれば同様の案内に置換する。
-      const browsersMissing =
+      // 「Playwright のブラウザがインストールされていません...」を返す。
+      // それ以外のサブプロセスエラーで stderr に既知のシグネチャがあれば同様扱いに。
+      const isBrowsersMissing =
         raw.includes('Playwright のブラウザがインストールされていません') ||
         raw.includes("Executable doesn't exist") ||
         raw.includes('Looks like Playwright was just installed') ||
         raw.includes('pnpm exec playwright install');
+      setBrowsersMissing(isBrowsersMissing);
       setError(
-        browsersMissing
-          ? 'Playwright のブラウザがインストールされていません。リポジトリルートで `pnpm exec playwright install` を実行してから再度お試しください。'
+        isBrowsersMissing
+          ? 'Playwright のブラウザがインストールされていません。下の「今すぐインストール」ボタンでアプリ内からインストールできます。'
           : raw,
       );
     } finally {
@@ -126,6 +142,17 @@ export const CodegenDialog = ({ open, onClose, onResult }: Props): JSX.Element =
           {error !== null && (
             <div className={styles['error-banner']} role="alert">
               {error}
+              {browsersMissing && (
+                <div className={styles['banner-actions']}>
+                  <Button
+                    variant="primary"
+                    onClick={() => install.mutate()}
+                    disabled={install.isPending}
+                  >
+                    {install.isPending ? 'インストール中...' : '今すぐインストール'}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
           <p className={styles['hint']}>

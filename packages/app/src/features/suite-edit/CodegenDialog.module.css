@@ -50,6 +50,12 @@
   font-size: 12px;
 }
 
+.banner-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
 .hint {
   margin: 0;
   font-size: 12px;

@@ -268,7 +268,9 @@ describe('SuiteEditPage', () => {
 
       const msg = await screen.findByText(/Playwright のブラウザがインストールされていません/);
       expect(msg).toBeTruthy();
-      expect(msg.textContent).toContain('pnpm exec playwright install');
+      expect(msg.textContent).toContain('今すぐインストール');
+      // 「今すぐインストール」ボタンも出ているはず (アプリ内インストールが可能)
+      expect(screen.getByRole('button', { name: '今すぐインストール' })).toBeTruthy();
     });
 
     it('Subprocess の生stderr から browsers missing を検出してメッセージを置換する', async () => {

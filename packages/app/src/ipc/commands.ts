@@ -10,6 +10,7 @@ import type {
   CodegenInputWire,
   CodegenResultWire,
   StartRunResponseWire,
+  PlaywrightStatusWire,
 } from './types.js';
 
 export const listSuites = (): Promise<SuiteWire[]> => invoke('list_suites');
@@ -45,3 +46,7 @@ export const startRun = (suiteId: string): Promise<StartRunResponseWire> =>
   invoke('start_run', { suiteId });
 
 export const cancelRun = (runId: string): Promise<void> => invoke('cancel_run', { runId });
+
+export const checkPlaywright = (): Promise<PlaywrightStatusWire> => invoke('check_playwright');
+
+export const installPlaywright = (): Promise<void> => invoke('install_playwright');

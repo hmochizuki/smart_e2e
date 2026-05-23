@@ -353,6 +353,12 @@ export const devMockHandlers = {
     return { runId };
   },
   cancel_run: (_runId: string): null => null,
+  check_playwright: () => ({
+    ready: true,
+    missingPaths: [] as ReadonlyArray<string>,
+    allPaths: ['/mock/path/chromium-1223'] as ReadonlyArray<string>,
+  }),
+  install_playwright: (): null => null,
 };
 
 export type DevMockCommand = keyof typeof devMockHandlers;

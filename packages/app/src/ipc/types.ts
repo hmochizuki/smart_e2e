@@ -76,3 +76,18 @@ type ReplaceDates<T> = T extends Date
 export interface StartRunResponseWire {
   readonly runId: string;
 }
+
+export interface PlaywrightStatusWire {
+  readonly ready: boolean;
+  readonly missingPaths: ReadonlyArray<string>;
+  readonly allPaths: ReadonlyArray<string>;
+}
+
+export interface PlaywrightInstallLineEventWire {
+  readonly stream: 'stdout' | 'stderr';
+  readonly line: string;
+}
+
+export interface PlaywrightInstallDoneEventWire {
+  readonly exitCode: number | null;
+}

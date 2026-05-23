@@ -8,11 +8,13 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 import {
   cancelRun,
+  checkPlaywright,
   createStep,
   createSuite,
   deleteStep,
   deleteSuite,
   getSuite,
+  installPlaywright,
   listSteps,
   listSuiteRuns,
   listSuites,
@@ -177,5 +179,26 @@ describe('cancelRun', () => {
     invokeMock.mockResolvedValueOnce(null);
     await cancelRun('run-1');
     expect(invokeMock).toHaveBeenCalledWith('cancel_run', { runId: 'run-1' });
+  });
+});
+
+describe('checkPlaywright', () => {
+  it('invokes check_playwright with no args', async () => {
+    invokeMock.mockResolvedValueOnce({
+      ready: true,
+      missingPaths: [],
+      allPaths: ['/x/chromium-1'],
+    });
+    const result = await checkPlaywright();
+    expect(invokeMock).toHaveBeenCalledWith('check_playwright', undefined);
+    expect(result.ready).toBe(true);
+  });
+});
+
+describe('installPlaywright', () => {
+  it('invokes install_playwright with no args', async () => {
+    invokeMock.mockResolvedValueOnce(null);
+    await installPlaywright();
+    expect(invokeMock).toHaveBeenCalledWith('install_playwright', undefined);
   });
 });

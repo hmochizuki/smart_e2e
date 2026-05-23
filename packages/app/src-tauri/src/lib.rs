@@ -56,6 +56,8 @@ pub fn run() {
             commands::run::start_run,
             commands::run::cancel_run,
             commands::codegen::start_codegen,
+            commands::playwright::check_playwright,
+            commands::playwright::install_playwright,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
