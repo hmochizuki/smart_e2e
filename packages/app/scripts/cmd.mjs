@@ -16,7 +16,13 @@ if (!cmd) {
   process.exit(2);
 }
 
-const args = jsonArg ? JSON.parse(jsonArg) : {};
+let args;
+try {
+  args = jsonArg ? JSON.parse(jsonArg) : {};
+} catch (e) {
+  process.stderr.write(`invalid json: ${String(e)}\n`);
+  process.exit(2);
+}
 
 const dbPath = process.env.SMART_E2E_DB_PATH;
 const migrationsFolder = process.env.SMART_E2E_MIGRATIONS_FOLDER;
@@ -58,7 +64,7 @@ async function dispatch(name, payload, repos) {
     case 'get_suite':
       return await suiteRepo.findByIdOrThrow(payload.id);
     case 'update_suite':
-      return await suiteRepo.update(payload.id, payload.patch);
+      return await suiteRepo.update(payload.id, stripNulls(payload.patch));
     case 'delete_suite':
       await suiteRepo.delete(payload.id);
       return null;
@@ -67,7 +73,7 @@ async function dispatch(name, payload, repos) {
     case 'create_step':
       return await stepRepo.create(payload.input);
     case 'update_step':
-      return await stepRepo.update(payload.id, payload.patch);
+      return await stepRepo.update(payload.id, stripNulls(payload.patch));
     case 'delete_step':
       await stepRepo.delete(payload.id);
       return null;
@@ -76,4 +82,11 @@ async function dispatch(name, payload, repos) {
     default:
       throw new Error(`unknown command: ${name}`);
   }
+}
+
+function stripNulls(patch) {
+  if (patch === null || patch === undefined || typeof patch !== 'object') {
+    return patch;
+  }
+  return Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== null));
 }
