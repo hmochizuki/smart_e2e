@@ -21,6 +21,30 @@ describe('loadConfig', () => {
       expect(result.value.stepTimeoutMs).toBe(60_000);
       expect(result.value.workDir).toMatch(/smart_e2e_runner/);
       expect(result.value.useFakeLLM).toBe(false);
+      expect(result.value.useDocker).toBe(false);
+      expect(result.value.dockerImage).toBeNull();
+    }
+  });
+
+  it('RUNNER_USE_DOCKER=true で useDocker が true になる', () => {
+    const result = loadConfig({
+      ANTHROPIC_API_KEY: 'sk-test',
+      RUNNER_USE_DOCKER: 'true',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.useDocker).toBe(true);
+    }
+  });
+
+  it('RUNNER_DOCKER_IMAGE で dockerImage を指定できる', () => {
+    const result = loadConfig({
+      ANTHROPIC_API_KEY: 'sk-test',
+      RUNNER_DOCKER_IMAGE: 'custom-image:1.2.3',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.dockerImage).toBe('custom-image:1.2.3');
     }
   });
 

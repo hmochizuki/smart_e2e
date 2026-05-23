@@ -31,6 +31,13 @@ export {
   type SpawnInput,
   type SpawnResult,
 } from './playwright/spawn.js';
+export {
+  createDockerSpawnFn,
+  type DockerSpawnFnOptions,
+  type DockerSpawnAdapter,
+  type DockerSpawnChild,
+  type DockerSpawnSignal,
+} from './playwright/dockerSpawn.js';
 export { emptyArtifacts, type Artifacts } from './playwright/artifacts.js';
 export {
   classifyError,

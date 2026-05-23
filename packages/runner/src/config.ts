@@ -17,6 +17,8 @@ export type RunnerConfig = {
   maxRepairAttempts: number;
   stepTimeoutMs: number;
   useFakeLLM: boolean;
+  useDocker: boolean;
+  dockerImage: string | null;
 };
 
 const defaultWorkDir = (): string => join(tmpdir(), 'smart_e2e_runner');
@@ -38,6 +40,8 @@ const RawEnvSchema = z.object({
     .regex(/^\d+$/, 'RUNNER_STEP_TIMEOUT_MS must be a positive integer')
     .optional(),
   RUNNER_USE_FAKE_LLM: z.string().optional(),
+  RUNNER_USE_DOCKER: z.string().optional(),
+  RUNNER_DOCKER_IMAGE: z.string().min(1).optional(),
 });
 
 const DEFAULT_MODEL = 'claude-opus-4-5';
@@ -73,5 +77,7 @@ export const loadConfig = (
     maxRepairAttempts,
     stepTimeoutMs,
     useFakeLLM: truthy(data.RUNNER_USE_FAKE_LLM),
+    useDocker: truthy(data.RUNNER_USE_DOCKER),
+    dockerImage: data.RUNNER_DOCKER_IMAGE ?? null,
   });
 };

@@ -8,6 +8,7 @@ import { createRunnerEmitter } from './events/emitter.js';
 import { runSuite } from './loop/runSuite.js';
 import { realFileSystem } from './playwright/runStep.js';
 import { nodeSpawnFn, type SpawnFn, type SpawnResult } from './playwright/spawn.js';
+import { createDockerSpawnFn } from './playwright/dockerSpawn.js';
 import { createAnthropicLLMClient } from './repair/anthropicClient.js';
 import type { LLMClient } from './repair/llmClient.js';
 
@@ -170,7 +171,10 @@ export const runCli = async (input: CliInput): Promise<number> => {
         apiKey: config.anthropicApiKey,
         model: config.anthropicModel,
       });
-  const spawnFn = config.useFakeLLM ? createFakeSpawnFromEnv(input.env) : nodeSpawnFn;
+  const realSpawnFn: SpawnFn = config.useDocker
+    ? createDockerSpawnFn(config.dockerImage !== null ? { imageTag: config.dockerImage } : {})
+    : nodeSpawnFn;
+  const spawnFn = config.useFakeLLM ? createFakeSpawnFromEnv(input.env) : realSpawnFn;
 
   const result = await runSuite(
     { suite: fileResult.suite, steps: fileResult.steps },
