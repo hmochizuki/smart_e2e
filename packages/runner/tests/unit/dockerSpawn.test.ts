@@ -282,6 +282,23 @@ describe('createDockerSpawnFn', () => {
     }
   });
 
+  it('cwd にコロンが含まれる場合は errorMessage を含む SpawnResult を返す', async () => {
+    const recorded: Recorded[] = [];
+    const { spawn } = createFakeChild(recorded, { exitCode: 0 });
+    const spawnFn = createDockerSpawnFn({ spawn });
+    const result = await spawnFn({
+      ...baseInput(),
+      cwd: 'C:\\Users\\foo',
+    });
+    expect(result.exitCode).toBeNull();
+    expect(result.timedOut).toBe(false);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toBe('');
+    expect(result.errorMessage).toBeDefined();
+    expect(result.errorMessage).toContain('コロン');
+    expect(recorded).toHaveLength(0);
+  });
+
   it('durationMs は 0 以上の数値', async () => {
     const recorded: Recorded[] = [];
     const { spawn } = createFakeChild(recorded, { exitCode: 0 });

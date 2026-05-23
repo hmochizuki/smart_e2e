@@ -114,11 +114,10 @@ export const runStep = async (
     });
   }
 
-  const { message, stack } = extractErrorMessage(
-    spawnResult.stderr,
-    spawnResult.stdout,
-    spawnResult.timedOut,
-  );
+  const { message, stack } =
+    spawnResult.errorMessage !== undefined
+      ? { message: spawnResult.errorMessage, stack: null }
+      : extractErrorMessage(spawnResult.stderr, spawnResult.stdout, spawnResult.timedOut);
   // screenshot は今は spawn 側 spec が出した場合のみ。
   // 実 Playwright trace 解析は別タスクで対応する想定。
   const screenshotExists = (await deps.fs.readFileMaybe(screenshotPath)) !== null;

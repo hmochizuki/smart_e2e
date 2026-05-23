@@ -1,7 +1,7 @@
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { createDockerSpawnFn } from '../../src/playwright/dockerSpawn.js';
 
 // 実 docker コマンドが必要なため、明示的に opt-in したときだけ実行する。
@@ -9,8 +9,23 @@ import { createDockerSpawnFn } from '../../src/playwright/dockerSpawn.js';
 const enabled = process.env['RUNNER_INTEGRATION_DOCKER'] === 'true';
 
 describe.skipIf(!enabled)('createDockerSpawnFn (integration)', () => {
-  it('smart-e2e-runner イメージで簡易コマンドを exit 0 で実行できる', async () => {
+  const createdDirs: string[] = [];
+  const createTempDir = async (): Promise<string> => {
     const dir = await mkdtemp(join(tmpdir(), 'runner-docker-int-'));
+    createdDirs.push(dir);
+    return dir;
+  };
+
+  afterEach(async () => {
+    while (createdDirs.length > 0) {
+      const dir = createdDirs.pop();
+      if (dir === undefined) continue;
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('smart-e2e-runner イメージで簡易コマンドを exit 0 で実行できる', async () => {
+    const dir = await createTempDir();
     const spawnFn = createDockerSpawnFn({
       imageTag: 'smart-e2e-runner:0.1.0',
     });
@@ -26,7 +41,7 @@ describe.skipIf(!enabled)('createDockerSpawnFn (integration)', () => {
   }, 120_000);
 
   it('exit 1 の child は exitCode 1 で伝搬する', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'runner-docker-int-'));
+    const dir = await createTempDir();
     const spawnFn = createDockerSpawnFn({
       imageTag: 'smart-e2e-runner:0.1.0',
     });

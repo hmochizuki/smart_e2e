@@ -36,6 +36,7 @@ export {
   type DockerSpawnFnOptions,
   type DockerSpawnAdapter,
   type DockerSpawnChild,
+  type DockerSpawnChildListeners,
   type DockerSpawnSignal,
 } from './playwright/dockerSpawn.js';
 export { emptyArtifacts, type Artifacts } from './playwright/artifacts.js';

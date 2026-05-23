@@ -1,5 +1,6 @@
 import { spawn as nodeChildSpawn } from 'node:child_process';
 import type { SpawnFn, SpawnInput, SpawnResult } from './spawn.js';
+import { SIGKILL_GRACE_MS } from './spawnKill.js';
 
 export type DockerSpawnSignal = 'SIGTERM' | 'SIGKILL';
 
@@ -30,7 +31,6 @@ const DEFAULT_IMAGE_TAG = 'smart-e2e-runner:0.1.0';
 const DEFAULT_NETWORK = 'bridge';
 const DEFAULT_DOCKER_COMMAND = 'docker';
 const CONTAINER_WORK_DIR = '/work';
-const SIGKILL_GRACE_MS = 5_000;
 
 const defaultAdapter: DockerSpawnAdapter = (command, args) => {
   const child = nodeChildSpawn(command, [...args], {
@@ -91,8 +91,19 @@ export const createDockerSpawnFn = (options: DockerSpawnFnOptions = {}): SpawnFn
   const dockerCommand = options.dockerCommand ?? DEFAULT_DOCKER_COMMAND;
   const adapter = options.spawn ?? defaultAdapter;
 
-  return (input: SpawnInput): Promise<SpawnResult> =>
-    new Promise<SpawnResult>((resolve, reject) => {
+  return (input: SpawnInput): Promise<SpawnResult> => {
+    if (input.cwd.includes(':')) {
+      const result: SpawnResult = {
+        exitCode: null,
+        timedOut: false,
+        stdout: '',
+        stderr: '',
+        durationMs: 0,
+        errorMessage: `cwd "${input.cwd}" にコロンが含まれています。docker volume mount と互換性がありません`,
+      };
+      return Promise.resolve(result);
+    }
+    return new Promise<SpawnResult>((resolve, reject) => {
       const started = Date.now();
       const dockerArgs = buildDockerArgs(input, { imageTag, network, extraDockerArgs });
       let timedOut = false;
@@ -138,4 +149,5 @@ export const createDockerSpawnFn = (options: DockerSpawnFnOptions = {}): SpawnFn
         });
       });
     });
+  };
 };
