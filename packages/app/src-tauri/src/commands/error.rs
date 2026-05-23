@@ -11,6 +11,15 @@ pub enum CommandError {
 
     #[error("failed to parse subprocess output: {0}")]
     InvalidOutput(String),
+
+    #[error("required executable not found: {0}")]
+    NotFound(String),
+
+    #[error("codegen produced empty output")]
+    CodegenEmpty,
+
+    #[error("invalid input: {0}")]
+    InvalidInput(String),
 }
 
 impl Serialize for CommandError {

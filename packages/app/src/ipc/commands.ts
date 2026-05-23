@@ -7,6 +7,8 @@ import type {
   NewStepInputWire,
   SuitePatchWire,
   StepPatchWire,
+  CodegenInputWire,
+  CodegenResultWire,
 } from './types.js';
 
 export const listSuites = (): Promise<SuiteWire[]> => invoke('list_suites');
@@ -34,3 +36,6 @@ export const deleteStep = (id: string): Promise<void> => invoke('delete_step', {
 
 export const listSuiteRuns = (suiteId: string): Promise<SuiteRunWire[]> =>
   invoke('list_suite_runs', { suiteId });
+
+export const startCodegen = (input: CodegenInputWire): Promise<CodegenResultWire> =>
+  invoke('start_codegen', { url: input.url, target: input.target });

@@ -84,9 +84,32 @@ scripts/
   cmd.mjs              Rust から呼ばれる CLI ヘルパー
 ```
 
+## Playwright codegen の使い方
+
+`start_codegen` Tauri command でローカルの Playwright codegen を起動し、ユーザーのブラウザ操作を録画して spec として取得できる。
+
+### 前提
+
+- ローカルマシンで `npx` が PATH に通っていること
+- Playwright のブラウザがインストール済みであること (`pnpm playwright install` 等)
+- codegen は GUI ブラウザを起動するため、**常にローカル実行**。`RUNNER_USE_DOCKER` が有効でも Docker 内ではなくホスト側で動く (Docker 内ブラウザは GUI 不可)
+
+### フロー
+
+1. フロントから URL を渡して `startCodegen({ url, target? })` を呼ぶ
+2. Rust 側で一時ファイル (`.ts`) を作成し、`npx playwright codegen --target=<target> -o <tmp> <url>` を spawn
+3. ユーザーのブラウザ操作が録画される (この間 Tauri command は待機)
+4. ユーザーが codegen ウィンドウ/ブラウザを閉じるとプロセスが終了
+5. 一時ファイルから spec を読み取り、`{ script, targetUrl }` として返却
+6. 一時ファイルは削除される
+
+`target` のデフォルトは `playwright-test`。`javascript` 等の codegen サポート target も指定可能。
+
+実行中のキャンセル機能は未実装 (将来対応予定)。
+
 ## TODO (次タスク)
 
 - Run 実行系 command (`start_run`, `cancel_run` 等)
-- Playwright codegen 連携 (Step 録画)
-- 各画面の UI 実装 (features/, ui/)
+- Codegen のキャンセル / 実行中ステータス通知 (events)
+- 各画面の UI 実装 (features/, ui/) — Suite 編集画面に「録画」ボタンを置き `startCodegen` を呼ぶ
 - icons/ の正式アイコン差し替え

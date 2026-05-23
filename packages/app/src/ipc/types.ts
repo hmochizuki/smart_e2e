@@ -42,3 +42,15 @@ export type NewSuiteInputWire = NewSuiteInput;
 export type NewStepInputWire = NewStepInput;
 export type SuitePatchWire = Partial<NewSuiteInput>;
 export type StepPatchWire = Partial<NewStepInput>;
+
+export type CodegenTarget = 'playwright-test' | 'javascript';
+
+export interface CodegenInputWire {
+  readonly url: string;
+  readonly target?: CodegenTarget;
+}
+
+export interface CodegenResultWire {
+  readonly script: string;
+  readonly targetUrl: string;
+}

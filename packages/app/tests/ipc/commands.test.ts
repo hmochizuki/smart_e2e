@@ -15,9 +15,11 @@ import {
   listSteps,
   listSuiteRuns,
   listSuites,
+  startCodegen,
   updateStep,
   updateSuite,
 } from '../../src/ipc/commands.js';
+import type { CodegenResultWire } from '../../src/ipc/types.js';
 
 beforeEach(() => {
   invokeMock.mockReset();
@@ -117,5 +119,39 @@ describe('listSuiteRuns', () => {
   it('passes suiteId', async () => {
     await listSuiteRuns('suite-1');
     expect(invokeMock).toHaveBeenCalledWith('list_suite_runs', { suiteId: 'suite-1' });
+  });
+});
+
+describe('startCodegen', () => {
+  it('passes url and target', async () => {
+    invokeMock.mockResolvedValueOnce({
+      script: "import { test } from '@playwright/test';",
+      targetUrl: 'https://example.com',
+    });
+    await startCodegen({ url: 'https://example.com', target: 'playwright-test' });
+    expect(invokeMock).toHaveBeenCalledWith('start_codegen', {
+      url: 'https://example.com',
+      target: 'playwright-test',
+    });
+  });
+
+  it('passes url with undefined target when omitted', async () => {
+    invokeMock.mockResolvedValueOnce({ script: 'x', targetUrl: 'https://example.com' });
+    await startCodegen({ url: 'https://example.com' });
+    expect(invokeMock).toHaveBeenCalledWith('start_codegen', {
+      url: 'https://example.com',
+      target: undefined,
+    });
+  });
+
+  it('returns CodegenResultWire shape', async () => {
+    const wire: CodegenResultWire = {
+      script: "import { test } from '@playwright/test';",
+      targetUrl: 'https://example.com',
+    };
+    invokeMock.mockResolvedValueOnce(wire);
+    const result: CodegenResultWire = await startCodegen({ url: 'https://example.com' });
+    expect(result.script).toBe(wire.script);
+    expect(result.targetUrl).toBe(wire.targetUrl);
   });
 });

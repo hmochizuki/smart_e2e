@@ -49,6 +49,7 @@ pub fn run() {
             commands::suite::update_step,
             commands::suite::delete_step,
             commands::run::list_suite_runs,
+            commands::codegen::start_codegen,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
