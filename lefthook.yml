@@ -1,0 +1,25 @@
+# pre-commit は軽量チェックのみ。test は重いため pre-push に寄せる (I-2)。
+# ESLint は staged_files 個別実行だと parserOptions.project の都合で
+# PARSERSERVICES_NOT_CONFIGURED が出るため、フルパターン実行にする (C-2)。
+pre-commit:
+  parallel: true
+  commands:
+    oxlint:
+      glob: '*.{ts,tsx,js,mjs,cjs}'
+      run: pnpm exec oxlint {staged_files}
+    eslint:
+      glob: 'packages/**/*.{ts,tsx}'
+      run: pnpm lint:eslint
+    typecheck:
+      run: pnpm exec turbo run typecheck --filter='...[HEAD]'
+    format:
+      glob: '*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml}'
+      run: pnpm exec prettier --write {staged_files}
+      stage_fixed: true
+
+# pre-push は完全チェック。turbo の lint タスクは oxlint のみなので、
+# ESLint type-aware は別途 lint:eslint で必ず実行する (I-5)。
+pre-push:
+  commands:
+    full-check:
+      run: pnpm exec turbo run lint typecheck test build && pnpm lint:eslint

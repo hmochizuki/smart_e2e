@@ -141,3 +141,19 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Turbo
+.turbo/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+
+# Tauri (Rust側)
+src-tauri/target/
+target/
+
+# lefthook local overrides
+lefthook-local.yml
+

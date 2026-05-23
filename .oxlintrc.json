@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn",
+    "style": "warn"
+  },
+  "rules": {
+    "typescript/no-explicit-any": "error",
+    "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
+    "typescript/no-non-null-assertion": "error",
+    "import/no-cycle": "error",
+    "import/no-self-import": "error",
+    "import/no-default-export": "error"
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.config.{ts,js,mjs,cjs}",
+        "**/vite.config.{ts,js}",
+        "**/vitest.config.{ts,js}",
+        "**/vitest.workspace.{ts,js}",
+        "**/tests/**",
+        "**/*.test.{ts,tsx}",
+        "**/*.spec.{ts,tsx}"
+      ],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["packages/app/**/*.{ts,tsx}"],
+      "rules": {
+        "react-hooks/rules-of-hooks": "error",
+        "react-hooks/exhaustive-deps": "warn"
+      }
+    }
+  ],
+  "ignorePatterns": ["node_modules", "dist", "build", "coverage", ".turbo", "packages/*/dist"]
+}
