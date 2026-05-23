@@ -1,0 +1,7 @@
+# Vite フロントビルド成果物 (Tauri の frontendDist が参照するため、ディレクトリ自体は .gitkeep で保持)
+dist-web/*
+!dist-web/.gitkeep
+
+# Tauri Rust 側
+src-tauri/target/
+src-tauri/gen/

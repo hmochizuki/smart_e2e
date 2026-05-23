@@ -6,6 +6,7 @@
     "noEmit": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo.typecheck",
     "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx"
   },
   "include": ["src/**/*", "tests/**/*", "vitest.config.ts"],

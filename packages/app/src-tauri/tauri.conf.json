@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "smart_e2e",
+  "version": "0.0.0",
+  "identifier": "dev.smart-e2e.app",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "pnpm dev --build || true",
+    "frontendDist": "../dist-web"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "smart_e2e",
+        "width": 1200,
+        "height": 800,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/icon.png"]
+  }
+}
