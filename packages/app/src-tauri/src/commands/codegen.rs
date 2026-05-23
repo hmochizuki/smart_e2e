@@ -1,8 +1,8 @@
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::path::Path;
 
 use serde::Serialize;
-use tempfile::Builder;
+use tempfile::{Builder, TempPath};
+use tokio::process::Command;
 
 use super::error::CommandError;
 
@@ -46,17 +46,14 @@ pub fn resolve_target(target: Option<String>) -> String {
     }
 }
 
-fn create_temp_output_path() -> Result<PathBuf, CommandError> {
+fn create_temp_output_path() -> Result<TempPath, CommandError> {
     let temp = Builder::new()
         .prefix("smart-e2e-codegen-")
         .suffix(".ts")
         .tempfile()
         .map_err(|e| CommandError::SpawnFailed(format!("failed to create temp file: {}", e)))?;
 
-    let (_file, path) = temp
-        .keep()
-        .map_err(|e| CommandError::SpawnFailed(format!("failed to persist temp file: {}", e)))?;
-    Ok(path)
+    Ok(temp.into_temp_path())
 }
 
 #[tauri::command]
@@ -69,34 +66,39 @@ pub async fn start_codegen(
     }
 
     let resolved_target = resolve_target(target);
-    let output_path = create_temp_output_path()?;
+    let temp_path = create_temp_output_path()?;
 
-    let result = run_codegen(&url, &resolved_target, &output_path);
-
-    let _ = std::fs::remove_file(&output_path);
-
-    result
+    run_codegen(&url, &resolved_target, &temp_path).await
 }
 
-fn run_codegen(url: &str, target: &str, output_path: &Path) -> Result<CodegenResult, CommandError> {
+async fn run_codegen(
+    url: &str,
+    target: &str,
+    output_path: &Path,
+) -> Result<CodegenResult, CommandError> {
     let args = build_codegen_args(url, target, output_path)?;
 
-    let status = Command::new("npx").args(&args).status().map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            CommandError::NotFound("npx".into())
-        } else {
-            CommandError::SpawnFailed(e.to_string())
-        }
-    })?;
+    let output = Command::new("npx")
+        .args(&args)
+        .output()
+        .await
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                CommandError::NotFound("npx".into())
+            } else {
+                CommandError::SpawnFailed(e.to_string())
+            }
+        })?;
 
-    if !status.success() {
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
         return Err(CommandError::SubprocessFailed {
-            status: status.code().unwrap_or(-1),
-            stderr: String::new(),
+            status: output.status.code().unwrap_or(-1),
+            stderr,
         });
     }
 
-    let script = std::fs::read_to_string(output_path).map_err(|e| {
+    let script = tokio::fs::read_to_string(output_path).await.map_err(|e| {
         CommandError::InvalidOutput(format!("failed to read codegen output: {}", e))
     })?;
 
@@ -173,5 +175,23 @@ mod tests {
     #[test]
     fn resolve_target_keeps_explicit_value() {
         assert_eq!(resolve_target(Some("javascript".to_string())), "javascript");
+    }
+
+    #[test]
+    fn create_temp_output_path_returns_path_with_ts_suffix() {
+        let path = create_temp_output_path().unwrap();
+        let s = path.to_string_lossy();
+        assert!(s.ends_with(".ts"));
+    }
+
+    #[test]
+    fn create_temp_output_path_removes_file_on_drop() {
+        let path_buf;
+        {
+            let temp_path = create_temp_output_path().unwrap();
+            path_buf = temp_path.to_path_buf();
+            assert!(path_buf.exists());
+        }
+        assert!(!path_buf.exists());
     }
 }

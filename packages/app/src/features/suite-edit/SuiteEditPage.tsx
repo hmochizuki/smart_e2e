@@ -58,15 +58,16 @@ export const SuiteEditPage = (): JSX.Element => {
     resolver: zodResolver(suiteFormSchema),
     defaultValues: { name: '', description: '' },
   });
+  const { reset: resetSuiteForm } = suiteForm;
 
   useEffect(() => {
     if (suiteQ.data) {
-      suiteForm.reset({
+      resetSuiteForm({
         name: suiteQ.data.name,
         description: suiteQ.data.description ?? '',
       });
     }
-  }, [suiteQ.data, suiteForm]);
+  }, [suiteQ.data, resetSuiteForm]);
 
   const handleSuiteSave = suiteForm.handleSubmit(async (values: SuiteFormValues): Promise<void> => {
     try {

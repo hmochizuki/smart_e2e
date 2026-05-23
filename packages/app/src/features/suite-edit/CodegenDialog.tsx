@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { startCodegen } from '../../ipc/commands.js';
 import type { CodegenTarget } from '../../ipc/types.js';
-import { Button, Input, Modal } from '../../ui/index.js';
+import { Button, Input, Modal, Spinner } from '../../ui/index.js';
 import styles from './CodegenDialog.module.css';
 
 const formSchema = z.object({
@@ -61,6 +61,7 @@ export const CodegenDialog = ({ open, onClose, onResult }: Props): JSX.Element =
       onClose={onClose}
       title="録画から Step を作成"
       size="sm"
+      disableClose={submitting}
       footer={
         <>
           <Button onClick={onClose} disabled={submitting}>
@@ -72,41 +73,50 @@ export const CodegenDialog = ({ open, onClose, onResult }: Props): JSX.Element =
         </>
       }
     >
-      <form
-        className={styles['form']}
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit();
-        }}
-      >
-        <div className={styles['field']}>
-          <label htmlFor="codegen-url" className={styles['label']}>
-            録画開始 URL
-          </label>
-          <Input
-            id="codegen-url"
-            autoFocus
-            placeholder="https://example.com"
-            invalid={Boolean(errors.url)}
-            {...register('url')}
-          />
-          {errors.url && <span className={styles['error']}>{errors.url.message}</span>}
+      {submitting ? (
+        <div className={styles['waiting']} role="status" aria-live="polite">
+          <Spinner />
+          <p>Playwright Codegen が起動しました。</p>
+          <p>ブラウザで操作を行ったあと、ブラウザウィンドウまたは Inspector を閉じてください。</p>
+          <p className={styles['note']}>codegen が終了するまで待っています...（キャンセル不可）</p>
         </div>
-        <div className={styles['field']}>
-          <label htmlFor="codegen-target" className={styles['label']}>
-            生成形式
-          </label>
-          <select id="codegen-target" className={styles['select']} {...register('target')}>
-            <option value="playwright-test">playwright-test</option>
-            <option value="javascript">javascript</option>
-          </select>
-        </div>
-        {error !== null && <div className={styles['error']}>{error}</div>}
-        <p className={styles['hint']}>
-          Playwright Codegen を起動します。ブラウザを閉じると操作が録画されたスクリプトが Step
-          編集モーダルに展開されます。
-        </p>
-      </form>
+      ) : (
+        <form
+          className={styles['form']}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submit();
+          }}
+        >
+          <div className={styles['field']}>
+            <label htmlFor="codegen-url" className={styles['label']}>
+              録画開始 URL
+            </label>
+            <Input
+              id="codegen-url"
+              autoFocus
+              placeholder="https://example.com"
+              invalid={Boolean(errors.url)}
+              {...register('url')}
+            />
+            {errors.url && <span className={styles['error']}>{errors.url.message}</span>}
+          </div>
+          <div className={styles['field']}>
+            <label htmlFor="codegen-target" className={styles['label']}>
+              生成形式
+            </label>
+            <select id="codegen-target" className={styles['select']} {...register('target')}>
+              <option value="playwright-test">playwright-test</option>
+              <option value="javascript">javascript</option>
+            </select>
+          </div>
+          {error !== null && <div className={styles['error']}>{error}</div>}
+          <p className={styles['hint']}>
+            Playwright Codegen を起動します。ブラウザを閉じると操作が録画されたスクリプトが Step
+            編集モーダルに展開されます。
+          </p>
+        </form>
+      )}
     </Modal>
   );
 };

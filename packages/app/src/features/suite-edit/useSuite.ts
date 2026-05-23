@@ -33,18 +33,21 @@ export const useSuite = (id: string): UseQueryResult<SuiteWire, Error> =>
   useQuery({
     queryKey: suiteKey(id),
     queryFn: () => getSuite(id),
+    enabled: id.length > 0,
   });
 
 export const useSteps = (suiteId: string): UseQueryResult<StepWire[], Error> =>
   useQuery({
     queryKey: stepsKey(suiteId),
     queryFn: () => listSteps(suiteId),
+    enabled: suiteId.length > 0,
   });
 
 export const useSuiteRuns = (suiteId: string): UseQueryResult<SuiteRunWire[], Error> =>
   useQuery({
     queryKey: suiteRunsKey(suiteId),
     queryFn: () => listSuiteRuns(suiteId),
+    enabled: suiteId.length > 0,
   });
 
 export const useUpdateSuite = (

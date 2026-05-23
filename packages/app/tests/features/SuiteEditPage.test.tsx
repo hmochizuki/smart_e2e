@@ -126,4 +126,116 @@ describe('SuiteEditPage', () => {
       });
     });
   });
+
+  describe('CodegenDialog 連携', () => {
+    it('「録画から Step を作成」ボタンで CodegenDialog が開く', async () => {
+      renderPage();
+
+      await screen.findByText('トップを開く');
+      fireEvent.click(screen.getByRole('button', { name: '録画から Step を作成' }));
+
+      expect(await screen.findByLabelText('録画開始 URL')).toBeTruthy();
+      expect(screen.getByLabelText('生成形式')).toBeTruthy();
+    });
+
+    it('URL 入力後に録画開始すると start_codegen が呼ばれる', async () => {
+      invokeMock.mockImplementation((cmd: string) => {
+        switch (cmd) {
+          case 'get_suite':
+            return baseSuite;
+          case 'list_steps':
+            return [baseStep];
+          case 'list_suite_runs':
+            return [];
+          case 'start_codegen':
+            return {
+              script: 'await page.goto("https://recorded.example.com")',
+              targetUrl: 'https://recorded.example.com',
+            };
+          default:
+            return null;
+        }
+      });
+
+      renderPage();
+
+      await screen.findByText('トップを開く');
+      fireEvent.click(screen.getByRole('button', { name: '録画から Step を作成' }));
+
+      const urlInput = await screen.findByLabelText('録画開始 URL');
+      fireEvent.change(urlInput, { target: { value: 'https://recorded.example.com' } });
+      fireEvent.click(screen.getByRole('button', { name: '録画を開始' }));
+
+      await waitFor(() => {
+        expect(invokeMock).toHaveBeenCalledWith('start_codegen', {
+          url: 'https://recorded.example.com',
+          target: 'playwright-test',
+        });
+      });
+    });
+
+    it('codegen 完了で StepEditModal が録画スクリプトを初期値として開く', async () => {
+      invokeMock.mockImplementation((cmd: string) => {
+        switch (cmd) {
+          case 'get_suite':
+            return baseSuite;
+          case 'list_steps':
+            return [baseStep];
+          case 'list_suite_runs':
+            return [];
+          case 'start_codegen':
+            return {
+              script: 'await page.goto("https://recorded.example.com")',
+              targetUrl: 'https://recorded.example.com',
+            };
+          default:
+            return null;
+        }
+      });
+
+      renderPage();
+
+      await screen.findByText('トップを開く');
+      fireEvent.click(screen.getByRole('button', { name: '録画から Step を作成' }));
+      fireEvent.change(await screen.findByLabelText('録画開始 URL'), {
+        target: { value: 'https://recorded.example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: '録画を開始' }));
+
+      const scriptArea = await screen.findByLabelText('スクリプト');
+      await waitFor(() => {
+        const value = (scriptArea as HTMLTextAreaElement).value;
+        expect(value).toBe('await page.goto("https://recorded.example.com")');
+      });
+      expect(await screen.findByRole('heading', { name: '新規 Step' })).toBeTruthy();
+    });
+
+    it('start_codegen が失敗した場合エラーメッセージが表示される', async () => {
+      invokeMock.mockImplementation((cmd: string) => {
+        switch (cmd) {
+          case 'get_suite':
+            return baseSuite;
+          case 'list_steps':
+            return [baseStep];
+          case 'list_suite_runs':
+            return [];
+          case 'start_codegen':
+            throw new Error('codegen failed: npx not found');
+          default:
+            return null;
+        }
+      });
+
+      renderPage();
+
+      await screen.findByText('トップを開く');
+      fireEvent.click(screen.getByRole('button', { name: '録画から Step を作成' }));
+      fireEvent.change(await screen.findByLabelText('録画開始 URL'), {
+        target: { value: 'https://recorded.example.com' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: '録画を開始' }));
+
+      expect(await screen.findByText(/codegen failed: npx not found/)).toBeTruthy();
+    });
+  });
 });
