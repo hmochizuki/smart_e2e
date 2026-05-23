@@ -288,5 +288,81 @@ describe('RunRepository', () => {
       await runRepo.deleteSuiteRun(suiteRunId);
       expect(await runRepo.findStepRunById(id)).toBeNull();
     });
+
+    it('abort 想定: pending/running の step_runs だけを failed + finishedAt に更新する', async () => {
+      const pendingId = randomUUID();
+      const runningId = randomUUID();
+      const succeededId = randomUUID();
+      const skippedId = randomUUID();
+      const succeededFinishedAt = new Date(1000);
+
+      await runRepo.createStepRun(pendingId, {
+        suiteRunId,
+        stepId,
+        status: 'pending',
+        attempts: 1,
+        startedAt: new Date(),
+        finishedAt: null,
+        finalScript: SCRIPT,
+      });
+      await runRepo.createStepRun(runningId, {
+        suiteRunId,
+        stepId,
+        status: 'running',
+        attempts: 1,
+        startedAt: new Date(),
+        finishedAt: null,
+        finalScript: SCRIPT,
+      });
+      await runRepo.createStepRun(succeededId, {
+        suiteRunId,
+        stepId,
+        status: 'succeeded',
+        attempts: 1,
+        startedAt: new Date(),
+        finishedAt: succeededFinishedAt,
+        finalScript: SCRIPT,
+      });
+      await runRepo.createStepRun(skippedId, {
+        suiteRunId,
+        stepId,
+        status: 'skipped',
+        attempts: 1,
+        startedAt: new Date(),
+        finishedAt: null,
+        finalScript: SCRIPT,
+      });
+
+      const finishedAt = new Date('2026-05-23T05:00:00.000Z');
+      const list = await runRepo.listStepRunsBySuiteRunId(suiteRunId);
+      const abortedIds: string[] = [];
+      for (const sr of list) {
+        if (sr.status === 'pending' || sr.status === 'running') {
+          await runRepo.updateStepRun(sr.id, {
+            status: 'failed',
+            finishedAt,
+          });
+          abortedIds.push(sr.id);
+        }
+      }
+
+      expect(abortedIds.sort()).toEqual([pendingId, runningId].sort());
+
+      const after = await Promise.all([
+        runRepo.findStepRunById(pendingId),
+        runRepo.findStepRunById(runningId),
+        runRepo.findStepRunById(succeededId),
+        runRepo.findStepRunById(skippedId),
+      ]);
+      expect(after[0]?.status).toBe('failed');
+      expect(after[0]?.finishedAt?.toISOString()).toBe(finishedAt.toISOString());
+      expect(after[1]?.status).toBe('failed');
+      expect(after[1]?.finishedAt?.toISOString()).toBe(finishedAt.toISOString());
+      // 既に終端状態のものは触らない。
+      expect(after[2]?.status).toBe('succeeded');
+      expect(after[2]?.finishedAt?.toISOString()).toBe(succeededFinishedAt.toISOString());
+      expect(after[3]?.status).toBe('skipped');
+      expect(after[3]?.finishedAt).toBeNull();
+    });
   });
 });

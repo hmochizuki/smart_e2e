@@ -87,6 +87,26 @@ async function dispatch(name, payload, repos) {
       await runRepo.updateSuiteRun(payload.id, patch);
       return null;
     }
+    case 'abort_suite_run_steps': {
+      // SuiteRun に紐づく step_runs のうち status='pending' or 'running' を中断扱いに更新する。
+      // StepRunStatus に 'aborted' が無いため、ユーザー中断は 'failed' で表現する。
+      const finishedAt =
+        payload.finishedAt && typeof payload.finishedAt === 'string'
+          ? new Date(payload.finishedAt)
+          : new Date();
+      const stepRuns = await runRepo.listStepRunsBySuiteRunId(payload.suiteRunId);
+      const aborted = [];
+      for (const sr of stepRuns) {
+        if (sr.status === 'pending' || sr.status === 'running') {
+          await runRepo.updateStepRun(sr.id, {
+            status: 'failed',
+            finishedAt,
+          });
+          aborted.push(sr.id);
+        }
+      }
+      return { abortedIds: aborted };
+    }
     default:
       throw new Error(`unknown command: ${name}`);
   }

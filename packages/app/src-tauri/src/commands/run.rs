@@ -231,6 +231,19 @@ pub async fn cancel_run(
         }
     }
 
+    // best-effort: 走行中/未走行の step_runs を中断扱いに更新する。
+    // ここを最初に走らせるのは「suite_runs より step_runs を先にクリーンする」順序保証のため。
+    let finished_at = chrono::Utc::now().to_rfc3339();
+    let _ = invoke_node(
+        &ctx,
+        "abort_suite_run_steps",
+        &json!({
+            "suiteRunId": &run_id,
+            "finishedAt": &finished_at,
+        }),
+    )
+    .await;
+
     // best-effort: DB の suite_runs.status を 'aborted' に更新する。
     let _ = invoke_node(
         &ctx,
@@ -239,7 +252,7 @@ pub async fn cancel_run(
             "id": &run_id,
             "patch": {
                 "status": "aborted",
-                "finishedAt": chrono::Utc::now().to_rfc3339(),
+                "finishedAt": &finished_at,
             }
         }),
     )

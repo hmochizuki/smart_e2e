@@ -48,30 +48,61 @@ const writeEvent = (ev) => {
   );
 };
 
-// Fake LLM: ANTHROPIC を呼ばずに「分類: transient」「修復: 固定スクリプト」を返す。
-const createFakeLLMClient = () => ({
+// Fake LLM/Spawn のシナリオ駆動拡張。
+// RUNNER_FAKE_SCENARIO で挙動を切り替え:
+//  - 'success' (デフォルト): spawn 常に成功、LLM は transient 固定
+//  - 'repair-then-success': 1回目 spawn 失敗 → LLM が ui_change 分類 → 修復スクリプト返却 → 2回目 spawn 成功
+//  - 'incident': spawn 失敗 → LLM が incident 分類 → 即 abort
+const FAKE_SCRIPT = "import { test } from '@playwright/test';\ntest('repaired', async () => {});\n";
+
+const createFakeLLMClient = (scenario) => ({
   complete: (_messages, options) => {
     const sys = options?.system ?? '';
-    if (sys.includes('修復')) {
+    const isRepair = sys.includes('修復');
+    if (scenario === 'repair-then-success') {
+      if (isRepair) return Promise.resolve(JSON.stringify({ script: FAKE_SCRIPT }));
       return Promise.resolve(
-        JSON.stringify({
-          script: "import { test } from '@playwright/test';\ntest('repaired', async () => {});\n",
-        }),
+        JSON.stringify({ classification: 'ui_change', rationale: 'fake ui_change' }),
       );
     }
+    if (scenario === 'incident') {
+      return Promise.resolve(
+        JSON.stringify({ classification: 'incident', rationale: 'fake incident' }),
+      );
+    }
+    if (isRepair) return Promise.resolve(JSON.stringify({ script: FAKE_SCRIPT }));
     return Promise.resolve(JSON.stringify({ classification: 'transient', rationale: 'fake' }));
   },
 });
 
-// Fake spawn: 常に成功 (exitCode 0) を返す。実 Playwright を起動しない fake モード用。
-const createFakeSpawn = () => () =>
-  Promise.resolve({
-    exitCode: 0,
-    stdout: '',
-    stderr: '',
-    timedOut: false,
-    durationMs: 1,
-  });
+// シナリオ駆動 Fake spawn。
+const createFakeSpawn = (scenario) => {
+  let callCount = 0;
+  return () => {
+    callCount += 1;
+    if (scenario === 'repair-then-success') {
+      // 1回目失敗 → 2回目以降成功
+      const exitCode = callCount === 1 ? 1 : 0;
+      return Promise.resolve({
+        exitCode,
+        stdout: '',
+        stderr: exitCode === 0 ? '' : 'fake failure on first attempt',
+        timedOut: false,
+        durationMs: 1,
+      });
+    }
+    if (scenario === 'incident') {
+      return Promise.resolve({
+        exitCode: 1,
+        stdout: '',
+        stderr: 'fake incident',
+        timedOut: false,
+        durationMs: 1,
+      });
+    }
+    return Promise.resolve({ exitCode: 0, stdout: '', stderr: '', timedOut: false, durationMs: 1 });
+  };
+};
 
 // 文字列日付を Date に戻す (cli.ts と同じ方針)
 const reviveDates = (input) => {
@@ -177,12 +208,15 @@ const bindPersistence = (emitter, persistence, suiteRunId, suiteId, stepIdByStep
             const sourceRepairId = attemptScripts.get(
               `${ev.stepRunId}:${String(ev.attempt)}:repairId`,
             );
-            // diff だけだとフルスクリプトに復元できないので、script_history は別途 step_finished
-            // 時に finalScript を保存する運用。ここでは llmOutputScript を更新できないため
-            // 暫定的にイベントログとしては stdout に流すだけにする。
             if (typeof sourceRepairId === 'string') {
-              // result/output の更新インターフェースは現状の RunnerPersistence に無い。
-              // 簡略化: 何もしない。今後追加。
+              try {
+                await persistence.updateRepairAttempt(sourceRepairId, {
+                  llmOutputScript:
+                    typeof ev.diff === 'string' && ev.diff.length > 0 ? ev.diff : null,
+                });
+              } catch (e) {
+                log(`updateRepairAttempt failed: ${String(e)}`);
+              }
             }
             break;
           }
@@ -315,11 +349,12 @@ const main = async () => {
 
   bindPersistence(emitter, persistence, input.suiteRunId, suite.id, stepIdByStepRunId);
 
+  const fakeScenario = process.env['RUNNER_FAKE_SCENARIO'] ?? 'success';
   const llmClient = useFakeLLM
-    ? createFakeLLMClient()
+    ? createFakeLLMClient(fakeScenario)
     : createAnthropicLLMClient({ apiKey: config.anthropicApiKey, model: config.anthropicModel });
 
-  const spawnFn = useFakeLLM ? createFakeSpawn() : nodeSpawnFn;
+  const spawnFn = useFakeLLM ? createFakeSpawn(fakeScenario) : nodeSpawnFn;
 
   let result;
   try {
